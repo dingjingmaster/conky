@@ -5,3 +5,5 @@ NAME
 To use with dwm configure with:
 
      ./configure --disable-x11 --disable-lua --no-create --no-recursion
+
+If the configure script does not complete also run ./config.status
