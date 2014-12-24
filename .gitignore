@@ -1,0 +1,16 @@
+*.o
+Makefile
+autom4te.cache/
+config.log
+config.status
+data/Makefile
+doc/Makefile
+libtool
+lua/.deps/
+lua/Makefile
+src/.deps/
+src/Makefile
+src/build.h
+src/config.h
+src/conky
+src/stamp-h1
