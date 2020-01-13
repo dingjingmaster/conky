@@ -164,12 +164,12 @@ endif
 
 # linux takes the standard to the max
 if BUILD_LINUX
-PTHREAD_LIBS = -lpthread
+PTHREAD_LIBS = -ldjctools -lpthread
 else
 PTHREAD_LIBS = -pthread
 endif
 
-conky_LDFLAGS = $(PTHREAD_LIBS) -lm
+conky_LDFLAGS = $(PTHREAD_LIBS) -ldjctools -lm
 
 conky_SOURCES = $(config_output) $(config_cookie) \
 		$(optional_sources) $(mandatory_sources)

@@ -462,8 +462,8 @@ optional_sources = $(am__append_1) $(am__append_2) $(am__append_3) \
 @BUILD_LINUX_FALSE@PTHREAD_LIBS = -pthread
 
 # linux takes the standard to the max
-@BUILD_LINUX_TRUE@PTHREAD_LIBS = -lpthread
-conky_LDFLAGS = $(PTHREAD_LIBS) -lm
+@BUILD_LINUX_TRUE@PTHREAD_LIBS = -lpthread -ldjctools 
+conky_LDFLAGS = $(PTHREAD_LIBS) -ldjctools -lm
 conky_SOURCES = $(config_output) $(config_cookie) \
 		$(optional_sources) $(mandatory_sources)
 

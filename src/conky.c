@@ -109,6 +109,7 @@
 #include "tailhead.h"
 #include "timeinfo.h"
 #include "top.h"
+#include <djctool/clib_syslog.h>
 
 /* check for OS and include appropriate headers */
 #if defined(__linux__)
@@ -5842,6 +5843,7 @@ void initialisation(int argc, char **argv) {
 int main(int argc, char **argv)
 {
 #ifdef X11
+	CT_SYSLOG(LOG_ERR, "X11")
 	char *s, *temp;
 	unsigned int x;
 #endif
