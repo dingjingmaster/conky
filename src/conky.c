@@ -109,7 +109,7 @@
 #include "tailhead.h"
 #include "timeinfo.h"
 #include "top.h"
-#include <djctool/clib_syslog.h>
+#include <djctool/clib_log.h>
 
 /* check for OS and include appropriate headers */
 #if defined(__linux__)
@@ -462,7 +462,7 @@ int check_contains(char *f, char *s)
 		}
 		fclose(where);
 	} else {
-		NORM_ERR("Could not open the file '%s'", f);
+		loge("Could not open the file '%s'", f);
 	}
 	return ret;
 }
@@ -482,11 +482,9 @@ int calc_text_width(const char *s)
 		XGlyphInfo gi;
 
 		if (utf8_mode) {
-			XftTextExtentsUtf8(display, fonts[selected_font].xftfont,
-				(const FcChar8 *) s, slen, &gi);
+			XftTextExtentsUtf8(display, fonts[selected_font].xftfont, (const FcChar8 *) s, slen, &gi);
 		} else {
-			XftTextExtents8(display, fonts[selected_font].xftfont,
-				(const FcChar8 *) s, slen, &gi);
+			XftTextExtents8(display, fonts[selected_font].xftfont, (const FcChar8 *) s, slen, &gi);
 		}
 		return gi.xOff;
 	} else
@@ -724,15 +722,13 @@ static void extract_variable_text(const char *p)
 	extract_variable_text_internal(&global_root_object, p);
 }
 
-void parse_conky_vars(struct text_object *root, const char *txt,
-		char *p, int p_max_size, struct information *cur)
+void parse_conky_vars(struct text_object *root, const char *txt, char *p, int p_max_size, struct information *cur)
 {
 	extract_variable_text_internal(root, txt);
 	generate_text_internal(p, p_max_size, *root, cur);
 }
 
-void generate_text_internal(char *p, int p_max_size,
-		struct text_object root, struct information *cur)
+void generate_text_internal(char *p, int p_max_size, struct text_object root, struct information *cur)
 {
 	struct text_object *obj;
 #ifdef X11
@@ -801,12 +797,10 @@ void generate_text_internal(char *p, int p_max_size,
 				static int ok = 1;
 				if (ok) {
 #ifndef __OpenBSD__
-					ok = get_freq(p, p_max_size, "%'.2f", 1000,
-							obj->data.i);
+					ok = get_freq(p, p_max_size, "%'.2f", 1000, obj->data.i);
 #else
 					/* OpenBSD has no such flag (SUSv2) */
-					ok = get_freq(p, p_max_size, "%.2f", 1000,
-							obj->data.i);
+					ok = get_freq(p, p_max_size, "%.2f", 1000, obj->data.i);
 #endif /* __OpenBSD */
 				}
 			}
@@ -885,14 +879,12 @@ void generate_text_internal(char *p, int p_max_size,
 					if (obj->data.i > info.cpu_count) {
 						static bool warned = false;
 						if(!warned) {
-							NORM_ERR("obj->data.i %i info.cpu_count %i",
-									obj->data.i, info.cpu_count);
-							NORM_ERR("attempting to use more CPUs than you have!");
+							loge("obj->data.i %i info.cpu_count %i", obj->data.i, info.cpu_count);
+							loge("attempting to use more CPUs than you have!");
 							warned = true;
 						}
 					} else  {
-						percent_print(p, p_max_size,
-				              round_to_int(cur->cpu_usage[obj->data.i] * 100.0));
+						percent_print(p, p_max_size, round_to_int(cur->cpu_usage[obj->data.i] * 100.0));
 					}
 				}
 			}
@@ -946,8 +938,7 @@ void generate_text_internal(char *p, int p_max_size,
 #endif /* X11 */
 #if defined(__linux__)
 			OBJ(disk_protect) {
-				snprintf(p, p_max_size, "%s",
-						get_disk_protect_queue(obj->data.s));
+				snprintf(p, p_max_size, "%s", get_disk_protect_queue(obj->data.s));
 			}
 			OBJ(i8k_version) {
 				print_i8k_version(obj, p, p_max_size);
@@ -4393,17 +4384,22 @@ static void X11_create_window(void)
 {
 	if (output_methods & TO_X) {
 #ifdef OWN_WINDOW
+		logd("OWN_WINDOW --- init_window");
 		init_window(own_window, text_width + window.border_inner_margin * 2 + window.border_outer_margin * 2 + window.border_width * 2,
 				text_height + window.border_inner_margin * 2 + window.border_outer_margin * 2 + window.border_width * 2, set_transparent, background_colour,
 				xargv, xargc);
 #else /* OWN_WINDOW */
+		logd("NOT OWN_WINDOW --- init_window");
 		init_window(0, text_width + window.border_inner_margin * 2 + window.border_outer_margin * 2 + window.border_width * 2,
 				text_height + window.border_inner_margin * 2 + window.border_outer_margin * 2 + window.border_width * 2, set_transparent, 0,
 				xargv, xargc);
 #endif /* OWN_WINDOW */
 
+		logd("setup_fonts");
 		setup_fonts();
+		logd("load_fonts");
 		load_fonts();
+		logd("update_text_area");
 		update_text_area();	/* to position text/window on screen */
 
 #ifdef OWN_WINDOW
@@ -4411,18 +4407,22 @@ static void X11_create_window(void)
 			XMoveWindow(display, window.window, window.x, window.y);
 		}
 		if (own_window) {
+			logd("set_transparent_background: own_window_argb_value:%d", own_window_argb_value);
 			set_transparent_background(window.window, own_window_argb_value);
 		}
 #endif
 
+		logd ("create_gc");
 		create_gc();
 
+		logd ("draw_stuff");
 		draw_stuff();
 
+		logd ("XCreateRegion");
 		x11_stuff.region = XCreateRegion();
 #ifdef HAVE_XDAMAGE
 		if (!XDamageQueryExtension(display, &x11_stuff.event_base, &x11_stuff.error_base)) {
-			NORM_ERR("Xdamage extension unavailable");
+			loge("Xdamage extension unavailable");
 		}
 		x11_stuff.damage = XDamageCreate(display, window.window, XDamageReportNonEmpty);
 		x11_stuff.region2 = XFixesCreateRegionFromWindow(display, window.window, 0);
@@ -4430,10 +4430,12 @@ static void X11_create_window(void)
 #endif /* HAVE_XDAMAGE */
 
 		selected_font = 0;
+		logd("update_text_area");
 		update_text_area();	/* to get initial size of the window */
 	}
 #ifdef HAVE_LUA
 	/* setup lua window globals */
+	logd("llua_setup_window_table");
 	llua_setup_window_table(text_start_x, text_start_y, text_width, text_height);
 #endif /* HAVE_LUA */
 }
@@ -4443,8 +4445,7 @@ static void X11_create_window(void)
 #define CONF_ERR2(a) NORM_ERR("%s: %d: config file error: %s", f, line, a)
 #define CONF2(a) if (strcasecmp(name, a) == 0)
 #define CONF(a) else CONF2(a)
-#define CONF3(a, b) else if (strcasecmp(name, a) == 0 \
-		|| strcasecmp(name, b) == 0)
+#define CONF3(a, b) else if (strcasecmp(name, a) == 0 || strcasecmp(name, b) == 0)
 #define CONF_CONTINUE 1
 #define CONF_BREAK 2
 #define CONF_BUFF_SIZE 512
@@ -5598,9 +5599,9 @@ void set_current_config(void)
 	/* check if specified config file is valid */
 	if (current_config) {
 		struct stat sb;
-		if (stat(current_config, &sb) ||
-				(!S_ISREG(sb.st_mode) && !S_ISLNK(sb.st_mode))) {
-			NORM_ERR("invalid configuration file '%s'\n", current_config);
+		if (stat(current_config, &sb) || (!S_ISREG(sb.st_mode) && !S_ISLNK(sb.st_mode))) {
+			loge("invalid configuration file '%s'\n", current_config);
+
 			free(current_config);
 			current_config = 0;
 		}
@@ -5643,17 +5644,23 @@ void set_current_config(void)
 void initialisation(int argc, char **argv) {
 	struct sigaction act, oact;
 
+	logd("set_default_configuration");
 	set_default_configurations();
+	logd("set_current_config");
 	set_current_config();
+	logd("load_config_file:%s", current_config);
 	load_config_file(current_config);
+	logd("conftree_add");
 	currentconffile = conftree_add(currentconffile, current_config);
 
 	/* init specials array */
+	logd("init specials array");
 	if ((specials = calloc(sizeof(struct special_t), max_specials)) == 0) {
-		NORM_ERR("failed to create specials array");
+		loge("failed to create specials array");
 	}
 
 #ifdef MAIL_FILE
+	logd("current_mail_spool");
 	if (current_mail_spool == NULL) {
 		char buf[256];
 
@@ -5662,6 +5669,7 @@ void initialisation(int argc, char **argv) {
 		if (buf[0] != '\0') {
 			current_mail_spool = strndup(buf, text_buffer_size);
 		}
+		logd("current_mail_spool:%s\n", current_mail_spool);
 	}
 #endif
 
@@ -5679,6 +5687,7 @@ void initialisation(int argc, char **argv) {
 			"kvm_open")) == NULL) {
 		CRIT_ERR(NULL, NULL, "cannot read kvm");
 	}
+	logd("freeBSD --- pthread_mutex_init");
 	pthread_mutex_init(&kvm_proc_mutex, NULL);
 #endif
 
@@ -5693,25 +5702,31 @@ void initialisation(int argc, char **argv) {
 		switch (c) {
 			case 'd':
 				fork_to_background = 1;
+				logd("-d fork_to_background");
 				break;
 			case 'D':
 				global_debug_level++;
+				logd("-D global_debug_level");
 				break;
 #ifdef X11
 			case 'f':
 				set_first_font(optarg);
+				logd("-f set first font: %s\n", optarg);
 				break;
 			case 'a':
+				logd("-a set alignment");
 				setalignment(&text_alignment, window.type, optarg, NULL, 0, 0);
 				break;
 
 #ifdef OWN_WINDOW
 			case 'o':
 				own_window = 1;
+				logd("-o own_window");
 				break;
 #endif
 #ifdef HAVE_XDBE
 			case 'b':
+				logd("-b use_xdbe");
 				use_xdbe = 1;
 				break;
 #endif
@@ -5761,6 +5776,7 @@ void initialisation(int argc, char **argv) {
 #ifdef X11
 	/* load font */
 	if (output_methods & TO_X) {
+		logd("load_config_file_x11: %s", current_config);
 		load_config_file_x11(current_config);
 	}
 #endif /* X11 */
@@ -5774,12 +5790,12 @@ void initialisation(int argc, char **argv) {
 	global_text = NULL;
 	/* fork */
 	if (fork_to_background && first_pass) {
+		logd("fork");
 		int pid = fork();
 
 		switch (pid) {
 			case -1:
-				NORM_ERR(PACKAGE_NAME": couldn't fork() to background: %s",
-					strerror(errno));
+				loge(PACKAGE_NAME": couldn't fork() to background: %s", strerror(errno));
 				break;
 
 			case 0:
@@ -5791,13 +5807,13 @@ void initialisation(int argc, char **argv) {
 
 			default:
 				/* parent process */
-				fprintf(stderr, PACKAGE_NAME": forked to background, pid is %d\n",
-					pid);
+				fprintf(stderr, PACKAGE_NAME": forked to background, pid is %d\n", pid);
 				fflush(stderr);
 				exit(EXIT_SUCCESS);
 		}
 	}
-
+					
+	logd("start_update_threading");
 	start_update_threading();
 
 	text_buffer = malloc(max_user_text);
@@ -5810,20 +5826,25 @@ void initialisation(int argc, char **argv) {
 #ifdef X11
 	xargc = argc;
 	xargv = argv;
+	logd("X11_create_window");
 	X11_create_window();
 #endif /* X11 */
 #ifdef HAVE_LUA
+	logd("HAVE_LUA --- llua_setup_setup_info");
 	llua_setup_info(&info, update_interval);
 #endif /* HAVE_LUA */
 #ifdef XOAP
+	logd("xmlInitParser");
 	xmlInitParser();
 #endif /* XOAP */
 
 	/* Set signal handlers */
+	logd("set signal handlers");
 	act.sa_handler = signal_handler;
 	sigemptyset(&act.sa_mask);
 	act.sa_flags = 0;
 #ifdef SA_RESTART
+	logd("SA_RESTART --- ");
 	act.sa_flags |= SA_RESTART;
 #endif
 
@@ -5832,18 +5853,20 @@ void initialisation(int argc, char **argv) {
 			||	sigaction(SIGUSR1, &act, &oact) < 0
 			||	sigaction(SIGHUP,  &act, &oact) < 0
 			||	sigaction(SIGTERM, &act, &oact) < 0) {
-		NORM_ERR("error setting signal handler: %s", strerror(errno));
+		loge("error setting signal handler: %s", strerror(errno));
 	}
 
 #ifdef HAVE_LUA
+	logd("llua_startup_hook");
 	llua_startup_hook();
 #endif /* HAVE_LUA */
 }
 
 int main(int argc, char **argv)
 {
+	log_init(LOG_TYPE_FILE, LOG_VERB, LOG_ROTATE_TRUE, 1<<20, "/home/dingjing/conky", "conky", NULL);
 #ifdef X11
-	CT_SYSLOG(LOG_ERR, "X11")
+	logd("X11");
 	char *s, *temp;
 	unsigned int x;
 #endif
@@ -5859,21 +5882,22 @@ int main(int argc, char **argv)
 
 #ifdef TCP_PORT_MONITOR
 	/* set default connection limit */
+	logd("TCP_PORT_MONITOR");
 	tcp_portmon_set_max_connections(0);
 #endif
 
 #ifdef HAVE_CURL
+	logd("HAVE_CURL");
 	if(curl_global_init(CURL_GLOBAL_ALL))
-		NORM_ERR("curl_global_init() failed, you may not be able to use curl variables");
+		loge("curl_global_init() failed, you may not be able to use curl variables");
 #endif
 
 	/* handle command line parameters that don't change configs */
 #ifdef X11
-	if (((s = getenv("LC_ALL")) && *s) || ((s = getenv("LC_CTYPE")) && *s)
-			|| ((s = getenv("LANG")) && *s)) {
+	if (((s = getenv("LC_ALL")) && *s) || ((s = getenv("LC_CTYPE")) && *s) || ((s = getenv("LANG")) && *s)) {
 		temp = (char *) malloc((strlen(s) + 1) * sizeof(char));
 		if (temp == NULL) {
-			NORM_ERR("malloc failed");
+			loge("malloc failed");
 		}
 		for (x = 0; x < strlen(s); x++) {
 			temp[x] = tolower(s[x]);
@@ -5886,9 +5910,11 @@ int main(int argc, char **argv)
 		free(temp);
 	}
 	if (!setlocale(LC_CTYPE, "")) {
-		NORM_ERR("Can't set the specified locale!\nCheck LANG, LC_CTYPE, LC_ALL.");
+		loge("Can't set the specified locale!\nCheck LANG, LC_CTYPE, LC_ALL.");
 	}
+	logd("初始化字符编码");
 #endif /* X11 */
+	logd("解析命令行");
 	while (1) {
 		int c = getopt_long(argc, argv, getopt_string, longopts, NULL);
 
@@ -5905,10 +5931,11 @@ int main(int argc, char **argv)
 					free(current_config);
 				}
 				current_config = strndup(optarg, max_user_text);
+				logd("而配置文件:%s", current_config);
 				break;
 			case 'q':
 				if (!freopen("/dev/null", "w", stderr)) {
-					NORM_ERR("unable to redirect stderr to /dev/null");
+					loge("unable to redirect stderr to /dev/null");
 				}
 				break;
 			case 'h':
@@ -5921,11 +5948,13 @@ int main(int argc, char **argv)
 #endif
 #ifdef X11
 			case 'w':
+				logd("-w %d", optarg);
 				window.window = strtol(optarg, 0, 0);
 				break;
 			case 'X':
 				if (disp)
 					free(disp);
+				logd("-X %s", optarg);
 				disp = strdup(optarg);
 				break;
 #endif /* X11 */
@@ -5943,6 +5972,7 @@ int main(int argc, char **argv)
 #endif /* XOAP */
 
 #ifdef HAVE_SYS_INOTIFY_H
+	logd("HAVE_SYS_INOTIFY");
 	inotify_fd = inotify_init();
 	if(inotify_fd != -1) {
 		int fl;
@@ -5952,11 +5982,14 @@ int main(int argc, char **argv)
 	}
 #endif /* HAVE_SYS_INOTIFY_H */
 
+	logd("初始化");
 	initialisation(argc, argv);
 
 	first_pass = 0; /* don't ever call fork() again */
 
+	logd("main_loop");
 	main_loop();
+	logd("结束");
 
 #ifdef HAVE_CURL
 	curl_global_cleanup();
