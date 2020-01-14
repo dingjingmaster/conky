@@ -4421,6 +4421,7 @@ static void X11_create_window(void)
 		logd ("XCreateRegion");
 		x11_stuff.region = XCreateRegion();
 #ifdef HAVE_XDAMAGE
+		logd ("HAVE_XDAMAGE --- XDamageQueryExtension");
 		if (!XDamageQueryExtension(display, &x11_stuff.event_base, &x11_stuff.error_base)) {
 			loge("Xdamage extension unavailable");
 		}
@@ -5683,9 +5684,8 @@ void initialisation(int argc, char **argv) {
 #endif
 
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-	if ((kd = kvm_open("/dev/null", "/dev/null", "/dev/null", O_RDONLY,
-			"kvm_open")) == NULL) {
-		CRIT_ERR(NULL, NULL, "cannot read kvm");
+	if ((kd = kvm_open("/dev/null", "/dev/null", "/dev/null", O_RDONLY, "kvm_open")) == NULL) {
+		loge(NULL, NULL, "cannot read kvm");
 	}
 	logd("freeBSD --- pthread_mutex_init");
 	pthread_mutex_init(&kvm_proc_mutex, NULL);
